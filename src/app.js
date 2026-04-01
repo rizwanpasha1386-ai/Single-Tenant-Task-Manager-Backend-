@@ -1,14 +1,20 @@
 require("dotenv").config();
 const express=require('express')
-const connectDB=require('./config/Dbconnection')
-const app=express()
-const UserRoute=require('./routes/user.route')
+const cookieParser = require("cookie-parser");
 
+const connectDB=require('./config/Dbconnection')
+const UserRoute=require('./routes/user.route')
+const TaskRoute=require('./routes/task.route')
+const {auth}=require('./middlewares/auth')
+
+const app=express()
+app.use(cookieParser());
 connectDB()
 
 app.use(express.json())
 
 app.use('/user',UserRoute)
+app.use('/tasks',TaskRoute)
 
 const PORT=process.env.PORT || 5000
 app.listen(PORT,()=>{
