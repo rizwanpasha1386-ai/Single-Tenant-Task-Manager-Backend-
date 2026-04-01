@@ -2,21 +2,28 @@ const TASK=require('../models/tasks.model')
 const USER=require('../models/user.model')
 
 async function CreateTask(req,res) {
-    const {title,description,priority,dueDate,name}=req.body
-    const user=await USER.findOne({name:name})
-   
     try {
-        await TASK.create({
+        const {title,description,priority,dueDate,assignedTo}=req.body
+    if(!title || !assignedTo)
+         return res.status(400).json({ msg: "Title and assigned user required" });
+        
+    const user = await USER.findById(assignedTo);
+        if (!user) {
+            return res.status(404).json({ msg: "Assigned user not found" });
+        }
+
+    const task= await TASK.create({
         title:title,
         description:description,
         priority:priority,
         dueDate:dueDate,
-        assignedTo:user._id
+        assignedTo:user._id,
+        createdBy:req.user._id
     })
-    return res.json({msg:"Task added successfully"})
+    return res.json({msg:"Task added successfully",task:task})
     } catch (error) {
-     console.log("Error in task insertion")
-     return res.json({msg:"Error, not inserted"})
+     
+     return res.status(500).json({msg:"Error, not inserted"})
     }
 }
 

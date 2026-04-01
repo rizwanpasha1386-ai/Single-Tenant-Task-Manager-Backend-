@@ -9,7 +9,7 @@ async function auth(req,res,next) {
         if(!token) return res.status(401).json({msg:"Unauthorized"})
         const decoded=jwt.verify(token,process.env.SECRET)
 
-        const user=USER.findById(decoded.id).select("-password")
+        const user=await USER.findById(decoded.id).select("-password")
 
         if (!user) {
             return res.status(401).json({ msg: "User no longer exists" });
