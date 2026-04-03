@@ -1,6 +1,26 @@
 const TASK=require('../models/tasks.model')
 const USER=require('../models/user.model')
 
+async function CreateUser(req,res) {
+    try {
+        const { name, email, password } = req.body;
+        const existingUser = await USER.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ msg: "User already exists" });
+        }
+
+        await USER.create({
+        name:name,
+        email:email,
+        password:password
+    })
+    return res.status(201).json({ msg: "User created successfully" });
+    }
+    catch(err){
+        return res.status(500).json({ msg: "Server error" });
+    }   
+}
+
 async function CreateTask(req,res) {
     try {
         const {title,description,priority,dueDate,assignedTo}=req.body
@@ -89,4 +109,4 @@ async function deleteTask(req,res) {
     }
 }
 
-module.exports={CreateTask,GetAllTasks,updateTask,deleteTask}
+module.exports={CreateUser,CreateTask,GetAllTasks,updateTask,deleteTask}

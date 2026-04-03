@@ -20,6 +20,7 @@ This system supports **role-based access control**, where admins can manage task
 ### 🛠️ Admin Functionalities
 
 * Create tasks
+* Create User
 * Assign tasks to users
 * View all tasks
 * View single task
@@ -33,6 +34,7 @@ This system supports **role-based access control**, where admins can manage task
 ### 👤 User Functionalities *(Upcoming / Next Phase)*
 
 * View assigned tasks
+* View their particular single task
 * Update task status
 
 ---
@@ -65,18 +67,21 @@ src/
 ### Tasks
 
 ```
+POST   /api/admin/createuser
 POST   /api/admin/tasks
 GET    /api/admin/tasks
 GET    /api/admin/tasks/:taskId
-PATCH  /api/admin/tasks/:taskId
+PUT   /api/admin/tasks/:taskId
 DELETE /api/admin/tasks/:taskId
 ```
 
 ### Users
 
 ```
-GET /api/admin/users
-GET /api/admin/users/:userId
+POST /api/user/login
+GET /api/user/getMyTasks
+GET /api/user/task/:id
+patch /api/user/task/:id
 ```
 
 ---
@@ -95,7 +100,7 @@ GET /api/admin/users/:userId
 ✅ Authentication system completed
 ✅ Admin task CRUD operations completed
 ✅ Role-based authorization implemented
-🔄 User-side features in progress
+🔄 User task operations completed
 🔄 Advanced features (filtering, pagination) planned
 
 ---
