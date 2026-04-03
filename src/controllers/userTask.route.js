@@ -88,7 +88,7 @@ async function updateStatus(req,res) {
         const {status}=req.body
         const id=req.params.id
 
-        const allowedStatus=["pending","done"]
+        const allowedStatus=["pending","in progress","done"]
 
         if(!allowedStatus.includes(status)){
             return res.status(404).json({msg:"Invalid status"})

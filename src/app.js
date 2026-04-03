@@ -8,13 +8,14 @@ const AdminRoute=require('./routes/admin.route')
 const UserTaskRoute=require('./routes/userTask.route')
 const {auth}=require('./middlewares/auth')
 const {isAdmin}=require('./middlewares/admin')
+const {login}=require('./controllers/userTask.route')
 
 const app=express()
 app.use(cookieParser());
 connectDB()
 
 app.use(express.json())
-
+app.use('/api/login',login)
 app.use('/api/admin',auth,isAdmin,AdminRoute)
 app.use('/api/user',auth,UserTaskRoute)
 

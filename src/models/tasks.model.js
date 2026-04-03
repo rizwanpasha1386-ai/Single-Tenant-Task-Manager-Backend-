@@ -21,7 +21,6 @@ const taskschema=new mongoose.Schema({
     assignedTo:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"users",
-        required:true
     },
     createdBy:{
         type:mongoose.Schema.Types.ObjectId,

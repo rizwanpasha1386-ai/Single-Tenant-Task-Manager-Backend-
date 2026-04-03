@@ -1,6 +1,6 @@
 const TASK=require('../models/tasks.model')
 const USER=require('../models/user.model')
-
+const mongoose=require('mongoose')
 async function CreateUser(req,res) {
     try {
         const { name, email, password } = req.body;
@@ -24,23 +24,31 @@ async function CreateUser(req,res) {
 async function CreateTask(req,res) {
     try {
         const {title,description,priority,dueDate,assignedTo}=req.body
-    if(!title || !assignedTo)
-         return res.status(400).json({ msg: "Title and assigned user required" });
+    if(!title)
+         return res.status(400).json({ msg: "Title required" });
         
-    const user = await USER.findById(assignedTo);
+    const Assignedto=null
+    if(assignedTo){
+        const user = await USER.findById(assignedTo);
         if (!user) {
             return res.status(404).json({ msg: "Assigned user not found" });
         }
+        Assignedto=user._id    
+    }
 
     const task= await TASK.create({
         title:title,
         description:description,
         priority:priority,
         dueDate:dueDate,
-        assignedTo:user._id,
+        assignedTo:Assignedto,
         createdBy:req.user._id
     })
-    return res.json({msg:"Task added successfully",task:task})
+
+    return res.json({msg:"Task added successfully",
+        task:task
+    })
+    
     } catch (error) {
      
      return res.status(500).json({msg:"Error, not inserted"})
@@ -50,7 +58,7 @@ async function CreateTask(req,res) {
 async function GetAllTasks(req,res) {
     try {
         const tasks=await TASK.find({createdBy:req.user._id})
-        .sort({priority:-1})
+        .sort({priority:-1,createdAt:-1})
         .populate("assignedTo","name email")
         return res.status(200).json({tasks:tasks})
     } catch (error) {
@@ -109,4 +117,38 @@ async function deleteTask(req,res) {
     }
 }
 
-module.exports={CreateUser,CreateTask,GetAllTasks,updateTask,deleteTask}
+async function ReassignTask(req,res) {
+    try {
+        const id=req.params.id
+        const {assignedTo}=req.body
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ msg: "Invalid task ID" });
+        }
+        if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
+            return res.status(400).json({ msg: "Invalid user ID" });
+        }
+
+        const user = await USER.findById(assignedTo);
+        if (!user) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+
+        const task=await TASK.findByIdAndUpdate(
+            id,
+            {assignedTo:assignedTo},
+            {new:true}
+        )
+        if(!task)
+            return res.status(404).json({msg:"Task not found"})
+
+        return res.status(200).json({msg:"Reassigned successfully",
+            task
+        })
+    } catch (error) {
+        console.log(error);
+        return res.status(500).json({msg:"Server error"})
+    }
+}
+
+module.exports={CreateUser,CreateTask,GetAllTasks,updateTask,deleteTask,ReassignTask}
