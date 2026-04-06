@@ -1,41 +1,89 @@
-# 🗂️ Task Manager – Single Tenant (Backend)
+# 🗂️ Task Manager – Project-Based System (Backend)
 
 ## 📌 Description
 
-A backend system for managing tasks within a single organization (single-tenant architecture).
-This system supports **role-based access control**, where admins can manage tasks and users, and users can work on assigned tasks.
+A backend system for managing tasks within a single organization (single-tenant architecture), upgraded to a **project-based structure**.
+
+The system now supports **role-based access control (RBAC)** with clear separation between admin and user responsibilities:
+
+* **Admins** manage projects, members, and tasks
+* **Users** work on assigned tasks within projects
 
 ---
 
-## 🚀 Features
+## 🚀 Key Upgrade (v1)
 
-### 🔐 Authentication & Authorization
+🔄 Migrated from **task-centric → project-centric architecture**
+
+* Tasks now belong to projects
+* Users are added as project members
+* Access is controlled at **project level**
+* Nested API structure for scalability
+
+---
+
+## 🔐 Authentication & Authorization
 
 * JWT-based authentication
 * HTTP-only cookies for secure sessions
-* Role-based access control (Admin & User)
+* Role-based access control:
+
+  * **Admin**
+  * **User**
+* Project-level authorization:
+
+  * Only project owner (admin) can manage resources
+  * Only members can access project data
 
 ---
 
-### 🛠️ Admin Functionalities
+## 🛠️ Admin Functionalities
 
-* Create tasks
-* Create User
-* Assign tasks to users
-* View all tasks
+### 📁 Project Management
+
+* Create project
+* View all projects (created by admin)
+* View single project
+* Update project
+* Delete project
+
+---
+
+### 👥 Member Management
+
+* Add users to project
+* Remove users from project
+* View all project members
+
+---
+
+### 📋 Task Management
+
+* Create tasks within project
+* Assign tasks to project members
+* View all tasks in a project
 * View single task
 * Update tasks (partial updates supported)
 * Delete tasks
-* View all users
-* View individual user details
+* Reassign tasks
 
 ---
 
-### 👤 User Functionalities *(Upcoming / Next Phase)*
+### 👤 User Management
 
-* View assigned tasks
-* View their particular single task
-* Update task status
+* Create user
+* View all users
+* View single user
+
+---
+
+## 👤 User Functionalities
+
+* View assigned projects
+* View single project (if member)
+* View tasks assigned to them within a project
+* View single task
+* Update task status (pending / done)
 
 ---
 
@@ -53,8 +101,12 @@ This system supports **role-based access control**, where admins can manage task
 ```
 src/
  ├── controllers/
- ├── models/
+ │    ├── admin/
+ │    └── user/
  ├── routes/
+ │    ├── admin/
+ │    └── user/
+ ├── models/
  ├── middleware/
  ├── utils/
  └── app.js
@@ -62,26 +114,71 @@ src/
 
 ---
 
-## 🔌 API Endpoints (Admin)
+## 🔌 API Endpoints
 
-### Tasks
+### 👨‍💼 Admin Routes
 
-```
-POST   /api/admin/createuser
-POST   /api/admin/tasks
-GET    /api/admin/tasks
-GET    /api/admin/tasks/:taskId
-PUT   /api/admin/tasks/:taskId
-DELETE /api/admin/tasks/:taskId
-```
-
-### Users
+#### 📁 Projects
 
 ```
-POST /api/user/login
-GET /api/user/getMyTasks
-GET /api/user/task/:id
-patch /api/user/task/:id
+POST   /api/admin/projects
+GET    /api/admin/projects
+GET    /api/admin/projects/:projectId
+PATCH  /api/admin/projects/:projectId
+DELETE /api/admin/projects/:projectId
+```
+
+---
+
+#### 👥 Members
+
+```
+POST   /api/admin/projects/:projectId/members
+GET    /api/admin/projects/:projectId/members
+DELETE /api/admin/projects/:projectId/members/:memberId
+```
+
+---
+
+#### 📋 Tasks
+
+```
+POST   /api/admin/projects/:projectId/tasks
+GET    /api/admin/projects/:projectId/tasks
+PATCH  /api/admin/projects/:projectId/tasks/:taskId
+DELETE /api/admin/projects/:projectId/tasks/:taskId
+PATCH  /api/admin/projects/:projectId/tasks/:taskId/assign
+```
+
+---
+
+#### 👤 Users
+
+```
+POST   /api/admin/users
+GET    /api/admin/users
+GET    /api/admin/users/:userId
+```
+
+---
+
+### 👤 User Routes
+
+#### 📁 Projects
+
+```
+GET /api/user/projects
+GET /api/user/projects/:projectId
+```
+
+---
+
+#### 📋 Tasks
+
+```
+GET    /api/user/projects/:projectId/tasks
+GET    /api/user/projects/:projectId/tasks/:taskId
+PATCH  /api/user/projects/:projectId/tasks/:taskId
 ```
 
 ---
@@ -91,6 +188,7 @@ patch /api/user/task/:id
 * Password hashing using bcrypt
 * JWT stored in HTTP-only cookies
 * Protected routes using middleware
+* Role-based and project-based authorization
 * Input validation and controlled updates
 
 ---
@@ -98,10 +196,11 @@ patch /api/user/task/:id
 ## 📊 Current Status
 
 ✅ Authentication system completed
-✅ Admin task CRUD operations completed
-✅ Role-based authorization implemented
-🔄 User task operations completed
-🔄 Advanced features (filtering, pagination) planned
+✅ Project-based architecture implemented
+✅ Admin project, member, and task management completed
+✅ User task flow implemented
+✅ Role-based authorization enforced at data level
+🔄 Filtering & pagination (in progress)
 
 ---
 
@@ -111,7 +210,9 @@ patch /api/user/task/:id
 * Pagination
 * Admin dashboard (analytics)
 * Activity logs
+* Notifications
 * Redis caching
+* Role hierarchy (manager vs member)
 
 ---
 

@@ -3,6 +3,7 @@ require("dotenv").config();
 const USER=require('../models/user.model')
 const bcrypt=require('bcrypt')
 const jwt=require('jsonwebtoken')
+const mongoose=require('mongoose')
 
 async function Signup(req,res) {
     try {
@@ -88,28 +89,43 @@ async function updateStatus(req,res) {
         const {status}=req.body
         const id=req.params.id
 
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ msg: "Invalid task ID" });
+        }
         const allowedStatus=["pending","in progress","done"]
 
         if(!allowedStatus.includes(status)){
             return res.status(404).json({msg:"Invalid status"})
         }
 
-        const task = await TASK.findByIdAndUpdate(
-         id,
-         { status },
-         { new: true }
-        )
-        if(!task)
-            return res.status(404).json({msg:"Task not found"})
-        if (task.assignedTo.toString() !== req.user._id.toString()) {
-           return res.status(403).json({ msg: "Not authorized" });
+        const task = await TASK.findById(id);
+
+        if (!task) {
+            return res.status(404).json({ msg: "Task not found" });
         }
+
+        // Authorization check BEFORE update
+        if (!task.assignedTo || task.assignedTo.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ msg: "Not authorized" });
+        }
+
+        // Update after validation
+        task.status = status;
+        if(status==="done"){
+            task.completedAt = new Date();
+        }
+        else{
+            task.completedAt = null;
+        }
+
+        await task.save();
 
          return res.status(200).json({
             msg: "Task status updated successfully",
             task
         })
     } catch (error) {
+        console.error(error);
          return res.status(500).json({ msg: "Server error" })
     }
 }

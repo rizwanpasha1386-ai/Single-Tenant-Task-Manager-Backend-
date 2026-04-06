@@ -1,37 +1,30 @@
-const TASK=require('../models/tasks.model')
-const USER=require('../models/user.model')
+const PROJECT = require('../../models/project.model');
+const TASK=require('../../models/tasks.model')
+const USER=require('../../models/user.model')
 const mongoose=require('mongoose')
-async function CreateUser(req,res) {
-    try {
-        const { name, email, password } = req.body;
-        const existingUser = await USER.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ msg: "User already exists" });
-        }
-
-        await USER.create({
-        name:name,
-        email:email,
-        password:password
-    })
-    return res.status(201).json({ msg: "User created successfully" });
-    }
-    catch(err){
-        return res.status(500).json({ msg: "Server error" });
-    }   
-}
 
 async function CreateTask(req,res) {
     try {
+        const projectId=req.params.projectId
         const {title,description,priority,dueDate,assignedTo}=req.body
     if(!title)
          return res.status(400).json({ msg: "Title required" });
         
-    const Assignedto=null
+    const project = await PROJECT.findById(projectId);
+        if (!project) {
+            return res.status(404).json({ msg: "Project not found" });
+        }
+
+    let Assignedto=null
     if(assignedTo){
         const user = await USER.findById(assignedTo);
         if (!user) {
             return res.status(404).json({ msg: "Assigned user not found" });
+        }
+        if (!project.members.includes(user._id)) {
+            return res.status(400).json({
+                msg: "User is not part of this project"
+            });
         }
         Assignedto=user._id    
     }
@@ -42,7 +35,7 @@ async function CreateTask(req,res) {
         priority:priority,
         dueDate:dueDate,
         assignedTo:Assignedto,
-        createdBy:req.user._id
+        project:projectId,
     })
 
     return res.json({msg:"Task added successfully",
@@ -57,7 +50,8 @@ async function CreateTask(req,res) {
 
 async function GetAllTasks(req,res) {
     try {
-        const tasks=await TASK.find({createdBy:req.user._id})
+        const projectId=req.params.projectId
+        const tasks=await TASK.find({project:projectId})
         .sort({priority:-1,createdAt:-1})
         .populate("assignedTo","name email")
         return res.status(200).json({tasks:tasks})
@@ -66,9 +60,11 @@ async function GetAllTasks(req,res) {
     }
 }
 
-async function updateTask(req,res) {
+async function UpdateTask(req,res) {
     try {
         const taskid=req.params.taskId
+        const projectId=req.params.projectId
+
         const validFields=[
             "title",
             "description",
@@ -83,17 +79,25 @@ async function updateTask(req,res) {
             if(validFields.includes(key))
                 updates[key]=req.body[key]
         }
-
+        
+        const project=await PROJECT.findById(projectId)
         if(updates.assignedTo){
             const user=await USER.findById(updates.assignedTo)
             if(!user)
                 return res.status(404).json({ msg: "Assigned user not found" });
+            if(!project.members.includes(user._id))
+                return res.status(400).json({
+                    msg: "User is not part of this project"
+                })
         }
 
         const task=await TASK.findByIdAndUpdate(
             taskid,
             updates,
-            {new:true}
+            {
+                new:true,
+                runValidators:true
+            }
         )
 
         if(!task)
@@ -108,7 +112,7 @@ async function updateTask(req,res) {
     }
 }
 
-async function deleteTask(req,res) {
+async function DeleteTask(req,res) {
     try {
         const task=await TASK.findByIdAndDelete(req.params.taskId)
         return res.status(200).json({msg:"Task deleted successfully"})
@@ -119,8 +123,9 @@ async function deleteTask(req,res) {
 
 async function ReassignTask(req,res) {
     try {
-        const id=req.params.id
+        const id=req.params.taskId
         const {assignedTo}=req.body
+        const projectId=req.params.projectId
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({ msg: "Invalid task ID" });
@@ -133,11 +138,20 @@ async function ReassignTask(req,res) {
         if (!user) {
             return res.status(404).json({ msg: "User not found" });
         }
+        const project=await PROJECT.findById(projectId)
+        if(!project.members.includes(assignedTo)){
+            return res.status(400).json({
+                    msg: "User is not part of this project"
+                })
+        }
 
-        const task=await TASK.findByIdAndUpdate(
-            id,
+        const task=await TASK.findOneAndUpdate(
+            {_id:id,project:project._id},
             {assignedTo:assignedTo},
-            {new:true}
+            {
+                new:true,
+                runValidators:true
+            }
         )
         if(!task)
             return res.status(404).json({msg:"Task not found"})
@@ -151,4 +165,4 @@ async function ReassignTask(req,res) {
     }
 }
 
-module.exports={CreateUser,CreateTask,GetAllTasks,updateTask,deleteTask,ReassignTask}
+module.exports={CreateTask,GetAllTasks,UpdateTask,DeleteTask,ReassignTask}

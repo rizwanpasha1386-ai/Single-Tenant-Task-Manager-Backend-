@@ -22,13 +22,13 @@ const taskschema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"users",
     },
-    createdBy:{
+    project:{
         type:mongoose.Schema.Types.ObjectId,
-        ref:"users",
-        // required:true
+        ref:"projects",
+        required:true
     },
     completedAt:Date,
-    updatedAt:Date
+    
 },{timestamps:true})
 
 const TASK=mongoose.model("tasks",taskschema)
