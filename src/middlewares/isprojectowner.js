@@ -1,4 +1,5 @@
 const PROJECT=require('../models/project.model')
+const mongoose=require('mongoose')
 async function IsProjectOwner(req,res,next) {
     try {
         const projectId=req.params.projectId
@@ -18,6 +19,7 @@ async function IsProjectOwner(req,res,next) {
         
         next()
     } catch (error) {
+        console.log(error);
         return res.status(500).json({msg:"Server error"})
     }
 }

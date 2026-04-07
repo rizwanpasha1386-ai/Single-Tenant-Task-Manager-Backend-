@@ -19,11 +19,12 @@ async function CreateUser(req,res) {
     return res.status(201).json({ msg: "User created successfully" });
     }
     catch(err){
+        console.log(err);
         return res.status(500).json({ msg: "Server error" });
     }   
 }
 
-async function GetallUser(params) {
+async function GetallUser(req,res) {
     try {
         const users = await USER.find().select("-password");
 

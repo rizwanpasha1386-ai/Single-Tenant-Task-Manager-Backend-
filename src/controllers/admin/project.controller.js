@@ -38,19 +38,19 @@ async function getAllProjects(req,res) {
 
 async function getProjectById(req,res) {
     try {
-        const id=req.params.id
+        const projectId=req.params.projectId
         const project = await PROJECT.findOne({
-            _id: id,
-            createdBy: req.user._id
+            _id: projectId,
         });
         if (!project) {
             return res.status(404).json({
-                msg: "Project not found or access denied"
+                msg: "Project not found"
             });
         }
 
         return res.status(200).json({project:project})
     } catch (error) {
+        console.log(error);
         return res.status(500).json({msg:"Server error",
             err:error.message
         })
@@ -59,7 +59,7 @@ async function getProjectById(req,res) {
 
 async function updateProject(req, res) {
     try {
-        const projectId = req.params.id;
+        const projectId = req.params.projectId;
         const { name, description, dueDate } = req.body;
 
         // Find project
@@ -69,12 +69,6 @@ async function updateProject(req, res) {
             return res.status(404).json({ msg: "Project not found" });
         }
 
-        // Authorization check (VERY IMPORTANT)
-        if (project.createdBy.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ msg: "Not authorized" });
-        }
-
-        // Update fields only if provided
         if (name) project.name = name;
         if (description) project.description = description;
         if (dueDate) project.dueDate = dueDate;
@@ -95,7 +89,7 @@ async function updateProject(req, res) {
 
 async function deleteProject(req,res) {
     try {
-        const projectId = req.params.id;
+        const projectId = req.params.projectId;
         const project=await PROJECT.findOneAndDelete({_id:projectId,
             createdBy:req.user._id
         })

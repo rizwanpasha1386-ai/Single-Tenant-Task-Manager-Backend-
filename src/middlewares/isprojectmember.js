@@ -1,4 +1,5 @@
 const PROJECT=require('../models/project.model')
+const mongoose=require('mongoose')
 async function IsProjectMember(req,res,next) {
     try {
         const { projectId } = req.params;
@@ -25,6 +26,8 @@ async function IsProjectMember(req,res,next) {
         
         next()
     } catch (error) {
+        console.log(error)
+        
         return res.status(500).json({msg:"Server error"})
     }
 }

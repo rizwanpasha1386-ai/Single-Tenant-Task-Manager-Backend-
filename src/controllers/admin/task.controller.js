@@ -43,7 +43,7 @@ async function CreateTask(req,res) {
     })
     
     } catch (error) {
-     
+     console.log(error)
      return res.status(500).json({msg:"Error, not inserted"})
     }
 }
@@ -70,7 +70,8 @@ async function UpdateTask(req,res) {
             "description",
             "status",
             "priority",
-            "assignedTo"
+            "assignedTo",
+            "dueDate"
         ]
 
         const updates={}

@@ -8,6 +8,7 @@ async function GetMyProjects(req,res) {
             projects:projects
         })
     } catch (error) {
+        console.log(error)
         return res.status(500).json({msg:"Server error"})
     }
 }
@@ -30,6 +31,8 @@ async function GetAProject(req,res) {
             project:project
         })
     } catch (error) {
+        console.log(error);
+        
         return res.status(500).json({msg:"Server error"})
     }
 }

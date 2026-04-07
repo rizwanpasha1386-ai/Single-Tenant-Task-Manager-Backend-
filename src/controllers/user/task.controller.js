@@ -2,9 +2,6 @@ const TASK=require('../../models/tasks.model')
 const USER=require('../../models/user.model')
 const mongoose=require('mongoose')
 
-const mongoose = require("mongoose");
-const TASK = require("../models/taskModel");
-
 async function getMyTasks(req, res) {
     try {
         const { projectId } = req.params;
