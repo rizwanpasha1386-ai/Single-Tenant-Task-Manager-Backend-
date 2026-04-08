@@ -1,7 +1,6 @@
 const PROJECT = require('../../models/project.model');
 const TASK=require('../../models/tasks.model')
 const USER=require('../../models/user.model')
-const mongoose=require('mongoose')
 
 async function CreateUser(req,res) {
     try {
@@ -46,11 +45,6 @@ async function GetallUser(req,res) {
 async function GetAUser(req,res) {
     try {
         const { userId } = req.params;
-
-        if (!mongoose.Types.ObjectId.isValid(userId)) {
-            return res.status(400).json({ msg: "Invalid user ID" });
-        }
-
         const user = await USER.findById(userId).select("-password");
 
         if (!user) {
@@ -67,4 +61,80 @@ async function GetAUser(req,res) {
     }
 }
 
-module.exports={CreateUser,GetallUser,GetAUser}
+async function deleteAUser(req,res) {
+    try {
+        const { userId } = req.params
+        const user = await USER.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                msg: "User not found"
+            });
+        }
+        if(user.role==="admin")
+            return res.json({msg:"Admin cannot be deleted"})
+
+        await USER.findByIdAndDelete(userId);
+        return res.status(200).json({
+            success: true,
+            msg: "User deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            msg: err.message
+        });
+    }
+}
+
+async function updateUser(req,res) {
+    try {
+        const { userId } = req.params;
+    const updates = req.body;
+    const user = await USER.findById(userId);
+
+    if (!user) {
+        return res.status(404).json({
+            success: false,
+            msg: "User not found"
+        });
+    }
+
+    if (updates.email) {
+            const existingUser = await USER.findOne({
+                email: updates.email,
+                _id: { $ne: userId }
+            });
+
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    msg: "Email already in use"
+                });
+            }
+        }
+
+    Object.keys(updates).forEach(key => {
+            user[key] = updates[key];
+        });
+    await user.save();
+
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    return res.status(200).json({
+            success: true,
+            msg: "User updated successfully",
+            data: userObj
+    });
+    } catch (error) {
+       return res.status(500).json({
+            success: false,
+            msg: err.message
+        }); 
+    }
+    
+}
+
+module.exports={CreateUser,GetallUser,GetAUser,deleteAUser,updateUser}

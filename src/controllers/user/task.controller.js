@@ -7,10 +7,6 @@ async function getMyTasks(req, res) {
         const { projectId } = req.params;
         const userId = req.user._id;
 
-        if (!mongoose.Types.ObjectId.isValid(projectId)) {
-            return res.status(400).json({ msg: "Invalid project ID" });
-        }
-
         const tasks = await TASK.find({
             project: projectId,
             assignedTo: userId
@@ -36,12 +32,6 @@ async function getATask(req,res) {
     try {
         const { projectId, taskId } = req.params;
         const userId = req.user._id;
-         if (
-            !mongoose.Types.ObjectId.isValid(projectId) ||
-            !mongoose.Types.ObjectId.isValid(taskId)
-        ) {
-            return res.status(400).json({ msg: "Invalid IDs" });
-        }
 
         const task = await TASK.findOne({
             _id: taskId,
@@ -71,13 +61,6 @@ async function updateStatus(req, res) {
         const { projectId, taskId } = req.params;
         const { status } = req.body;
         const userId = req.user._id;
-
-        if (
-            !mongoose.Types.ObjectId.isValid(projectId) ||
-            !mongoose.Types.ObjectId.isValid(taskId)
-        ) {
-            return res.status(400).json({ msg: "Invalid IDs" });
-        }
 
         const allowedStatus = ["pending", "in progress", "done"];
 

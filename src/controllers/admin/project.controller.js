@@ -4,9 +4,6 @@ const TASK=require('../../models/tasks.model')
 async function createProject(req,res) {
     try {
         const {name,description,duedate}=req.body
-        if (!name) {
-           return res.status(400).json({ msg: "Project name is required" });
-        }
         const project=await PROJECT.create({
             name:name,
             description:description,
@@ -60,7 +57,7 @@ async function getProjectById(req,res) {
 async function updateProject(req, res) {
     try {
         const projectId = req.params.projectId;
-        const { name, description, dueDate } = req.body;
+        const { name, description, duedate } = req.body;
 
         // Find project
         const project = await PROJECT.findById(projectId);
@@ -71,7 +68,7 @@ async function updateProject(req, res) {
 
         if (name) project.name = name;
         if (description) project.description = description;
-        if (dueDate) project.dueDate = dueDate;
+        if (duedate) project.duedate = duedate;
 
         await project.save();
 

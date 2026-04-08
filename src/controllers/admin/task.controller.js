@@ -128,13 +128,6 @@ async function ReassignTask(req,res) {
         const {assignedTo}=req.body
         const projectId=req.params.projectId
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ msg: "Invalid task ID" });
-        }
-        if (!mongoose.Types.ObjectId.isValid(assignedTo)) {
-            return res.status(400).json({ msg: "Invalid user ID" });
-        }
-
         const user = await USER.findById(assignedTo);
         if (!user) {
             return res.status(404).json({ msg: "User not found" });
