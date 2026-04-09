@@ -19,18 +19,75 @@ async function createProject(req,res) {
     }
 }
 
-async function getAllProjects(req,res) {
-    try {
-        const projects=await PROJECT.find({createdBy:req.user._id})
-        .sort({duedate:-1})
-        if(!projects)
-            return res.status(200).json({msg:"No Projects"})
-        return res.status(200).json({projects:projects}) 
-    } catch (error) {
-        return res.status(500).json({msg:"Server error",
-            err:error.msg
-        })
+async function getAllProjects(req, res) {
+  try {
+    const userId = req.user._id;
+
+    // 🔹 Pagination
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+
+    if (page < 1) page = 1;
+
+    const maxLimit = 50;
+    if (limit < 1) limit = 10;
+    const finalLimit = Math.min(limit, maxLimit);
+
+    const skip = (page - 1) * finalLimit;
+
+    // 🔹 Sorting
+    const sortBy = req.query.sortBy || "createdAt"; // better default
+    const order = req.query.order === "asc" ? 1 : -1;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = order;
+
+    // 🔹 Filtering
+    const { search, startDate, endDate } = req.query;
+
+    const filter = {
+      createdBy: userId
+    };
+
+    // 🔍 Search by name
+    if (search) {
+      filter.name = { $regex: search, $options: "i" };
     }
+
+    // 📅 Date filtering (on createdAt)
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    // 🔹 Query
+    const projects = await PROJECT.find(filter)
+      .select("name description createdBy members dueDate createdAt")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(finalLimit);
+
+    const total = await PROJECT.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      data: projects,
+      pagination: {
+        page,
+        limit: finalLimit,
+        total,
+        totalPages: Math.ceil(total / finalLimit)
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
 }
 
 async function getProjectById(req,res) {

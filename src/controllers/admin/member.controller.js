@@ -74,24 +74,46 @@ async function RemoveMember(req,res) {
     }
 }
 
-async function GetAllMembers(req,res) {
-    try {
-        const {projectId}=req.params
-        const project = await PROJECT.findById(projectId)
-            .populate("members", "name email role");
-        if(!project)
-            return res.status(404).json({msg:"Project not found"})
-        return res.status(200).json({
-            success: true,
-            totalMembers: project.members.length,
-            members: project.members
-        });
-    } catch (error) {
-        return res.status(500).json({
-            msg: "Server error",
-            error: error.message
-        });
-    }
-}
+async function GetAllMembers(req, res) {
+  try {
+    const { projectId } = req.params;
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    const maxLimit = 50;
+    const finalLimit = Math.min(limit, maxLimit);
+
+    const skip = (page - 1) * finalLimit;
+
+    const project = await PROJECT.findById(projectId)
+      .populate("members", "name email role");
+
+    if (!project) {
+      return res.status(404).json({ msg: "Project not found" });
+    }
+
+    const total = project.members.length;
+
+    const paginatedMembers = project.members.slice(skip, skip + finalLimit);
+
+    return res.status(200).json({
+      success: true,
+      data: paginatedMembers,
+      pagination: {
+        page,
+        limit: finalLimit,
+        total,
+        totalPages: Math.ceil(total / finalLimit)
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+}
 module.exports = { AddMembers,RemoveMember,GetAllMembers };

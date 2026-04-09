@@ -23,23 +23,72 @@ async function CreateUser(req,res) {
     }   
 }
 
-async function GetallUser(req,res) {
-    try {
-        const users = await USER.find().select("-password");
+async function GetallUser(req, res) {
+  try {
+    // 🔹 Pagination
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
 
-        res.status(200).json({
-            success: true,
-            count: users.length,
-            data: users
-        });
+    if (page < 1) page = 1;
 
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            msg: "Server error",
-            error: error.message
-        });
+    const maxLimit = 50;
+    if (limit < 1) limit = 10;
+    const finalLimit = Math.min(limit, maxLimit);
+
+    const skip = (page - 1) * finalLimit;
+
+    // 🔹 Sorting (no createdAt dependency)
+    const sortBy = req.query.sortBy || "name"; // default sort by name
+    const order = req.query.order === "asc" ? 1 : -1;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = order;
+
+    // 🔹 Filtering
+    const { search, role } = req.query;
+
+    const filter = {};
+
+    // 🔍 Search by name or email
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } }
+      ];
     }
+
+    // 🎯 Filter by role
+    if (role) {
+      filter.role = role;
+    }
+
+    // 🔹 Query
+    const users = await USER.find(filter)
+      .select("-password")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(finalLimit);
+
+    const total = await USER.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      data: users,
+      pagination: {
+        page,
+        limit: finalLimit,
+        total,
+        totalPages: Math.ceil(total / finalLimit)
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
 }
 
 async function GetAUser(req,res) {

@@ -3,29 +3,71 @@ const USER=require('../../models/user.model')
 const mongoose=require('mongoose')
 
 async function getMyTasks(req, res) {
-    try {
-        const { projectId } = req.params;
-        const userId = req.user._id;
+  try {
+    const { projectId } = req.params;
+    const userId = req.user._id;
 
-        const tasks = await TASK.find({
-            project: projectId,
-            assignedTo: userId
-        })
-        .select("title description status priority createdAt")
-        .sort({ priority: -1, createdAt: -1 });
+    // 🔹 Pagination
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
 
-        return res.status(200).json({
-            success: true,
-            count: tasks.length,
-            tasks
-        });
+    // Validation
+    if (page < 1) page = 1;
+    if (limit < 1 || limit > 50) limit = 10;
 
-    } catch (error) {
-        return res.status(500).json({
-            msg: "Server error",
-            error: error.message
-        });
+    const skip = (page - 1) * limit;
+
+    // 🔹 Sorting
+    const sortBy = req.query.sortBy || "createdAt"; // default
+    const order = req.query.order === "asc" ? 1 : -1;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = order;
+
+    // 🔹 Filtering
+    const { status, priority, startDate, endDate } = req.query;
+
+    const filter = {
+      project: projectId,
+      assignedTo: userId
+    };
+
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
     }
+
+    // 🔹 Query
+    const tasks = await TASK.find(filter)
+      .select("title description status priority createdAt")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await TASK.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      data: tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
 }
 
 async function getATask(req,res) {
