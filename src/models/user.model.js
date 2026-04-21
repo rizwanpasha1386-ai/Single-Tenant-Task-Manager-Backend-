@@ -1,5 +1,6 @@
 const mongoose=require('mongoose')
-const bcrypt=require('bcrypt')
+const bcrypt=require('bcrypt');
+const { required } = require('joi');
 
 const userschema=new mongoose.Schema({
     name:{
@@ -8,20 +9,14 @@ const userschema=new mongoose.Schema({
     },
     email:{
         type:String,
-        required:true,
-        unique:true
+        required:true
     },
     password:{
         type:String,
         required: true
     },
-    role:{
-        type:String,
-        enum:["admin","user"],
-        default:"user"
-    }
-},{timestamps:true})
 
+},{timestamps:true})
 
 userschema.pre('save', async function () {
     if (!this.isModified("password")) return;

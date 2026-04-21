@@ -27,9 +27,16 @@ const taskschema=new mongoose.Schema({
         ref:"projects",
         required:true
     },
+    tenantId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Tenant",
+        required: true
+    },
     completedAt:Date,
     
 },{timestamps:true})
+
+taskschema.index({ tenantId: 1, project: 1 });
 
 const TASK=mongoose.model("tasks",taskschema)
 

@@ -1,19 +1,18 @@
-const PROJECT = require('../../models/project.model');
-const TASK=require('../../models/tasks.model')
-const USER=require('../../models/user.model')
-const mongoose=require('mongoose')
+const USER=require('../models/user.model')
+const MEMBERSHIP=require('../models/membership.model')
+const PROJECT=require('../models/project.model')
+const TASK=require('../models/tasks.model')
 
+//admin - tasks
 async function CreateTask(req,res) {
     try {
         const projectId=req.params.projectId
+        const tenantId=req.params.tenantId
         const {title,description,priority,dueDate,assignedTo}=req.body
     if(!title)
          return res.status(400).json({ msg: "Title required" });
         
     const project = await PROJECT.findById(projectId);
-        if (!project) {
-            return res.status(404).json({ msg: "Project not found" });
-        }
 
     let Assignedto=null
     if(assignedTo){
@@ -36,6 +35,7 @@ async function CreateTask(req,res) {
         dueDate:dueDate,
         assignedTo:Assignedto,
         project:projectId,
+        tenantId:tenantId
     })
 
     return res.json({msg:"Task added successfully",
@@ -50,7 +50,7 @@ async function CreateTask(req,res) {
 
 async function GetAllTasks(req, res) {
   try {
-    const { projectId } = req.params;
+    const { projectId,tenantId } = req.params;
 
     // 🔹 Pagination
     let page = parseInt(req.query.page) || 1;
@@ -64,44 +64,13 @@ async function GetAllTasks(req, res) {
 
     const skip = (page - 1) * finalLimit;
 
-    // 🔹 Sorting
-    const sortBy = req.query.sortBy || "createdAt";
-    const order = req.query.order === "asc" ? 1 : -1;
-
-    const sortOptions = {};
-    sortOptions[sortBy] = order;
-
-    // 🔹 Filtering
-    const { status, priority, search, startDate, endDate } = req.query;
-
-    const filter = {
-      project: projectId
-    };
-
-    if (status) filter.status = status;
-    if (priority) filter.priority = priority;
-
-    // 🔍 Search by title
-    if (search) {
-      filter.title = { $regex: search, $options: "i" };
-    }
-
-    // 📅 Date range filter
-    if (startDate || endDate) {
-      filter.createdAt = {};
-      if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
-    }
 
     // 🔹 Query
-    const tasks = await TASK.find(filter)
+    const tasks = await TASK.find({project:projectId,tenantId:tenantId})
       .select("title description status priority createdAt assignedTo")
-      .sort(sortOptions)
       .populate("assignedTo", "name email")
       .skip(skip)
       .limit(finalLimit);
-
-    const total = await TASK.countDocuments(filter);
 
     return res.status(200).json({
       success: true,
@@ -109,8 +78,6 @@ async function GetAllTasks(req, res) {
       pagination: {
         page,
         limit: finalLimit,
-        total,
-        totalPages: Math.ceil(total / finalLimit)
       }
     });
 
@@ -126,7 +93,7 @@ async function GetAllTasks(req, res) {
 async function UpdateTask(req,res) {
     try {
         const taskid=req.params.taskId
-        const projectId=req.params.projectId
+        const {projectId,tenantId}=req.params
 
         const validFields=[
             "title",
@@ -169,7 +136,7 @@ async function UpdateTask(req,res) {
        
         return res.status(200).json({
         msg: "Task updated successfully",
-        task
+        task:task
         })
     } catch (error) {
         return res.status(500).json({msg:"Server error"})
@@ -189,7 +156,7 @@ async function ReassignTask(req,res) {
     try {
         const id=req.params.taskId
         const {assignedTo}=req.body
-        const projectId=req.params.projectId
+        const {projectId,tenantId}=req.params.projectId
 
         const user = await USER.findById(assignedTo);
         if (!user) {
@@ -203,7 +170,7 @@ async function ReassignTask(req,res) {
         }
 
         const task=await TASK.findOneAndUpdate(
-            {_id:id,project:project._id},
+            {_id:id,project:project._id,tenantId:tenantId},
             {assignedTo:assignedTo},
             {
                 new:true,
@@ -214,7 +181,7 @@ async function ReassignTask(req,res) {
             return res.status(404).json({msg:"Task not found"})
 
         return res.status(200).json({msg:"Reassigned successfully",
-            task
+            task:task
         })
     } catch (error) {
         console.log(error);
@@ -222,4 +189,150 @@ async function ReassignTask(req,res) {
     }
 }
 
-module.exports={CreateTask,GetAllTasks,UpdateTask,DeleteTask,ReassignTask}
+//member-task
+
+async function getMyTasks(req, res) {
+  try {
+    const { projectId ,tenantId} = req.params;
+    const userId = req.user._id;
+
+    // 🔹 Pagination
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+
+    // Validation
+    if (page < 1) page = 1;
+    if (limit < 1 || limit > 50) limit = 10;
+
+    const skip = (page - 1) * limit;
+
+    // 🔹 Sorting
+    const sortBy = req.query.sortBy || "createdAt"; // default
+    const order = req.query.order === "asc" ? 1 : -1;
+
+    const sortOptions = {};
+    sortOptions[sortBy] = order;
+
+    // 🔹 Filtering
+    const { status, priority, startDate, endDate } = req.query;
+
+    const filter = {
+      project: projectId,
+      assignedTo: userId,
+      tenantId:tenantId
+    };
+
+    if (status) filter.status = status;
+    if (priority) filter.priority = priority;
+
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) filter.createdAt.$lte = new Date(endDate);
+    }
+
+    // 🔹 Query
+    const tasks = await TASK.find(filter)
+      .select("title description status priority createdAt")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit);
+
+    const total = await TASK.countDocuments(filter);
+
+    return res.status(200).json({
+      success: true,
+      data: tasks,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+}
+
+async function getATask(req,res) {
+    try {
+        const { projectId, taskId ,tenantId} = req.params;
+        const userId = req.user._id;
+
+        const task = await TASK.findOne({
+            _id: taskId,
+            project: projectId,      // ✅ must belong to project
+            tenantId:tenantId,     
+            assignedTo: userId      // ✅ must be user's task
+        })
+        .select("title description status priority createdAt")
+        .populate("project", "name");
+
+        if (!task) {
+            return res.status(404).json({
+                msg: "Task not found or access denied"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            task
+        });
+    } catch (error) {
+        return res.status(500).json({msg:"Server error"})
+    }
+}
+
+async function updateStatus(req, res) {
+    try {
+        const { projectId, taskId, tenantId } = req.params;
+        const { status } = req.body;
+        const userId = req.user._id;
+
+        const allowedStatus = ["pending", "in progress", "done"];
+
+        if (!allowedStatus.includes(status)) {
+            return res.status(400).json({ msg: "Invalid status" });
+        }
+
+        const task = await TASK.findOne({
+            _id: taskId,
+            project: projectId,
+            tenantId:tenantId,
+            assignedTo: userId
+        });
+
+        if (!task) {
+            return res.status(404).json({
+                msg: "Task not found or access denied"
+            });
+        }
+
+        task.status = status;
+        task.completedAt = status === "done" ? new Date() : null;
+
+        await task.save();
+
+        return res.status(200).json({
+            success: true,
+            msg: "Task status updated successfully",
+            task
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            msg: "Server error",
+            error: error.message
+        });
+    }
+}
+
+module.exports={CreateTask,GetAllTasks,UpdateTask,DeleteTask,ReassignTask,
+    getATask,updateStatus,getMyTasks
+}
