@@ -98,7 +98,6 @@ async function UpdateTask(req,res) {
         const validFields=[
             "title",
             "description",
-            "status",
             "priority",
             "assignedTo",
             "dueDate"

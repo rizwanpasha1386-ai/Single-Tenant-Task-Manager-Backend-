@@ -2,6 +2,7 @@ const USER=require('../models/user.model')
 const MEMBERSHIP=require('../models/membership.model')
 const PROJECT=require('../models/project.model')
 const TASK=require('../models/tasks.model')
+const jwt=require('jsonwebtoken')
 
 async function signup(req,res) {
     try {
@@ -16,22 +17,21 @@ async function signup(req,res) {
             user
         })
     } catch (error) {
+        console.log(error);        
         return res.status(500).json({ msg: "Server error" });
     }
 }
 
-async function login(req,res) {
+async function login(req, res) {
     try {
         const { email, password } = req.body;
 
-        // 1. Validate input
         if (!email || !password) {
             return res.status(400).json({
                 message: "Email and password are required"
             });
         }
 
-        // 2. Find user
         const user = await USER.findOne({ email });
 
         if (!user) {
@@ -40,7 +40,6 @@ async function login(req,res) {
             });
         }
 
-        // 3. Compare password using schema method
         const isMatch = await user.Comparepassword(password);
 
         if (!isMatch) {
@@ -49,17 +48,22 @@ async function login(req,res) {
             });
         }
 
-        // 4. Generate JWT
         const token = jwt.sign(
-            { userId: user._id },
+            { userId: user._id }, // ⚠️ keep consistent with auth middleware
             process.env.JWT_SECRET,
             { expiresIn: "7d" }
         );
 
-        // 5. Response
+        // ✅ Set cookie
+        res.cookie("token", token, {
+            httpOnly: true,     // prevents JS access (security)
+            secure: false,      // true in production (HTTPS)
+            sameSite: "lax",    // or "strict"
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
         res.status(200).json({
             message: "Login successful",
-            token,
             user: {
                 id: user._id,
                 name: user.name,
@@ -74,5 +78,4 @@ async function login(req,res) {
         });
     }
 }
-
 module.exports={login,signup}

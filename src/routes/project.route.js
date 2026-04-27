@@ -16,7 +16,7 @@ router.post('/:tenantId/projects',isAdmin,validate(createProjectSchema),createPr
 router.get('/:tenantId/projects',isAdmin,getAllProjects)
 router.get('/:tenantId/projects/:projectId',isAdmin,IsProjectOwner,validate(projectIdParamSchema,'params'),getProjectById)
 router.patch('/:tenantId/projects/:projectId',isAdmin,IsProjectOwner,validate(projectIdParamSchema,'params'),validate(updateProjectSchema),updateProject)
-router.delete('/:tenantId/projects/:projectId',isAdmin,IsProjectMember,validate(projectIdParamSchema,'params'),deleteProject)
+router.delete('/:tenantId/projects/:projectId',isAdmin,IsProjectOwner,validate(projectIdParamSchema,'params'),deleteProject)
 
 //project members
 router.post('/:tenantId/projects/:projectId/members',isAdmin,IsProjectOwner,validate(projectIdParamSchema,'params'),validate(addMemberSchema),addProjectMembers)

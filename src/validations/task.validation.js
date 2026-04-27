@@ -9,10 +9,6 @@ const createTaskSchema=Joi.object({
     assignedTo:Joi.string()
     .hex()
     .length(24).optional(),
-    project:Joi.string()
-    .hex()
-    .length(24).required(),
-    
 })
 
 const updateTaskSchema=Joi.object({
@@ -38,6 +34,8 @@ const reassignTaskSchema=Joi.object({
 
 const objectId = Joi.string().hex().length(24)
 const TaskIdParamsSchema=Joi.object({
-    taskId: objectId.required()
+    taskId: objectId.required(),
+    tenantId:objectId.required(),
+    projectId:objectId.required()
 })
 module.exports={createTaskSchema,updateTaskSchema,statusUpdateTaskSchema,reassignTaskSchema,TaskIdParamsSchema}

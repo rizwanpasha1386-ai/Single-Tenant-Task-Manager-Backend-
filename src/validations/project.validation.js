@@ -23,11 +23,15 @@ const addMemberSchema=Joi.object({
 })
 
 const memberIdParamSchema = Joi.object({
-    memberId: Joi.string().hex().length(24).required()
+    projectId: objectId.required(),
+    memberId: Joi.string().hex().length(24).required(),
+    tenantId : objectId.required()
 })
 
 const projectIdParamSchema = Joi.object({
-    projectId: objectId.required()
+    projectId: objectId.required(),
+    tenantId : objectId.required(),
+    memberId:objectId
 })
 
 module.exports={createProjectSchema,updateProjectSchema,addMemberSchema,memberIdParamSchema,projectIdParamSchema}

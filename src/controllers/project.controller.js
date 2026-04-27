@@ -48,7 +48,7 @@ async function getAllProjects(req, res) {
 async function getProjectById(req,res) {
     try {
         const projectId=req.params.projectId
-        const project = res.project
+        const project=req.project
 
         return res.status(200).json({project:project})
     } catch (error) {
@@ -293,7 +293,7 @@ async function GetMyProjects(req, res) {
 
 async function GetAProject(req,res) {
     try {
-        const {projectId,tenantId}=req.params.projectId
+        const {projectId,tenantId}=req.params
 
         const project=await PROJECT.findOne({
             _id:projectId,tenantId:tenantId})

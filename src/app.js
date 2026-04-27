@@ -9,6 +9,7 @@ const tenantroute=require('./routes/tenant.route')
 
 const app=express()
 app.use(cookieParser());
+app.use(express.json())
 connectDB()
 
 app.use('/api/auth',authroute)

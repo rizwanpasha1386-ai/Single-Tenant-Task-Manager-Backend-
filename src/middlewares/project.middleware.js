@@ -48,6 +48,7 @@ async function IsProjectOwner(req,res,next) {
              return res.status(403).json({ msg: "Forbidden: Not project owner" });
 
         req.project = project;
+        console.log(req.project);
         
         next()
     } catch (error) {

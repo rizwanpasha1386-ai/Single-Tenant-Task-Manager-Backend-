@@ -2,6 +2,49 @@ const USER=require('../models/user.model')
 const MEMBERSHIP=require('../models/membership.model')
 const PROJECT=require('../models/project.model')
 const TASK=require('../models/tasks.model')
+const TENANT=require('../models/tenant.model')
+
+async function createTenant(req, res) {
+    try {
+        const { name, ownerName } = req.body;
+
+        // assuming you have auth middleware that sets req.user
+        const userId = req.user?._id;
+
+        // validation
+        if (!name || !ownerName) {
+            return res.status(400).json({ msg: "All fields are required" });
+        }
+
+        if (!userId) {
+            return res.status(401).json({ msg: "Unauthorized" });
+        }
+
+        // create tenant
+        const tenant = await TENANT.create({
+            name,
+            ownerName,
+            createdBy: userId
+        });
+
+        await MEMBERSHIP.create({
+            user:userId,
+            tenant:tenant._id,
+            role:"owner"
+        })
+
+        res.status(201).json({
+            msg: "Tenant created successfully",
+            tenant
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            msg: "Error creating tenant",
+            error: error.message
+        });
+    }
+}
 
 async function displayAllTenants(req,res) {
     try {
@@ -128,4 +171,4 @@ async function addTenantMembers(req, res) {
     }
 }
 
-module.exports={displayAllTenants,createAdmin,addTenantMembers}
+module.exports={createTenant,displayAllTenants,createAdmin,addTenantMembers}

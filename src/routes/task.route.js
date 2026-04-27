@@ -19,7 +19,7 @@ router.patch('/:tenantId/projects/:projectId/tasks/:taskId/assign',isAdmin,IsPro
 //member
 router.get('/:tenantId/projects/:projectId/my-tasks',isMember,IsProjectMember,getMyTasks)
 router.get('/:tenantId/projects/:projectId/tasks/:taskId',isMember,IsProjectMember,validate(TaskIdParamsSchema,'params'),getATask)
-router.patch('/:tenantId/projects/:projectId/tasks/:taskId',isMember,IsProjectMember,validate(TaskIdParamsSchema,'params'),validate(statusUpdateTaskSchema),updateStatus)
+router.patch('/:tenantId/projects/:projectId/tasks/:taskId/updatestatus',isMember,IsProjectMember,validate(TaskIdParamsSchema,'params'),validate(statusUpdateTaskSchema),updateStatus)
 
 
 module.exports=router

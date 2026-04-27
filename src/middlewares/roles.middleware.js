@@ -7,7 +7,7 @@ async function isAdmin(req,res,next) {
         tenant:tenantId
     })
     if(!membership)return res.status(403).json({msg:"Not authorized"})
-    if(membership.role!=="admin")return res.status(403).json({msg:"Not authorized"})
+    if(membership.role!=="admin"&&membership.role!=="owner")return res.status(403).json({msg:"Not authorized"})
     next()
 }
 async function isOwner(req,res,next) {
@@ -28,6 +28,8 @@ async function isMember(req,res,next) {
         user:userID,
         tenant:tenantId
     })
+    console.log(membership);
+    
     if(!membership)return res.status(403).json({msg:"Not authorized"})
     if(membership.role!=="member")return res.status(403).json({msg:"Not authorized"})
     next()
