@@ -11,13 +11,13 @@ const {createTaskSchema,updateTaskSchema,statusUpdateTaskSchema,reassignTaskSche
 router.use(auth)
 //admin
 router.post('/:tenantId/projects/:projectId/tasks',isAdmin,IsProjectOwner,validate(createTaskSchema),CreateTask)
-router.get('/:tenantId/projects/:projectId/tasks',isAdmin,IsProjectOwner,GetAllTasks)
+router.get('/:tenantId/projects/:projectId/tasks',isAdmin,IsProjectOwner,GetAllTasks)   ///tasks?status=todo&assignedTo=123&priority=1&search=login
 router.patch('/:tenantId/projects/:projectId/tasks/:taskId',isAdmin,IsProjectOwner,validate(TaskIdParamsSchema,"params"),validate(updateTaskSchema),UpdateTask)
 router.delete('/:tenantId/projects/:projectId/tasks/:taskId',isAdmin,IsProjectOwner,validate(TaskIdParamsSchema,"params"),DeleteTask)
 router.patch('/:tenantId/projects/:projectId/tasks/:taskId/assign',isAdmin,IsProjectOwner,validate(TaskIdParamsSchema,"params"),validate(reassignTaskSchema),ReassignTask)
 
 //member
-router.get('/:tenantId/projects/:projectId/my-tasks',isMember,IsProjectMember,getMyTasks)
+router.get('/:tenantId/projects/:projectId/my-tasks',isMember,IsProjectMember,getMyTasks)  ///tasks/my?status=todo&priority=1&search=login&sortBy=priority&order=asc
 router.get('/:tenantId/projects/:projectId/tasks/:taskId',isMember,IsProjectMember,validate(TaskIdParamsSchema,'params'),getATask)
 router.patch('/:tenantId/projects/:projectId/tasks/:taskId/updatestatus',isMember,IsProjectMember,validate(TaskIdParamsSchema,'params'),validate(statusUpdateTaskSchema),updateStatus)
 

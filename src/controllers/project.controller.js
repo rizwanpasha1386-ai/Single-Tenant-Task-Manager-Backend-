@@ -25,24 +25,46 @@ async function createProject(req,res) {
 
 async function getAllProjects(req, res) {
   try {
-    const userId = req.user._id;
-    const tenantId=req.params.tenantId
-    // 🔹 Query
-    const projects = await PROJECT.find({createdBy:userId,tenantId:tenantId})
-      .select("name description createdBy members dueDate createdAt")
+  const userId = req.user._id;
+  const tenantId = req.params.tenantId;
+  const { search, sort } = req.query;
 
-    return res.status(200).json({
-      success: true,
-      data: projects,
-    });
+  // 🧠 Base filter
+  let filter = {
+    tenantId: tenantId,
+    createdBy: userId
+  };
 
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+  // 🔍 Search
+  if (search) {
+    filter.name = { $regex: search, $options: "i" };
   }
+
+  // 🔃 Sorting (ONLY createdAt or dueDate)
+  let sortOption = { createdAt: -1 }; // ✅ default: latest first
+
+  if (sort === "createdAt") {
+    sortOption = { createdAt: -1 };
+  } else if (sort === "dueDate") {
+    sortOption = { dueDate: 1 }; // earliest deadline first
+  }
+
+  const projects = await PROJECT.find(filter)
+    .sort(sortOption)
+    .select("name description createdBy members dueDate createdAt");
+
+  return res.status(200).json({
+    success: true,
+    data: projects,
+  });
+
+} catch (error) {
+  return res.status(500).json({
+    success: false,
+    message: "Server error",
+    error: error.message
+  });
+}
 }
 
 async function getProjectById(req,res) {
@@ -193,31 +215,36 @@ async function RemoveMember(req,res) {
 async function GetAllMembers(req, res) {
   try {
     const { projectId } = req.params;
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    const maxLimit = 50;
-    const finalLimit = Math.min(limit, maxLimit);
-
-    const skip = (page - 1) * finalLimit;
+    const { search, role } = req.query;
 
     const project = await PROJECT.findById(projectId)
       .populate("members", "name email role");
 
-    const total = project.members.length;
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found"
+      });
+    }
 
-    const paginatedMembers = project.members.slice(skip, skip + finalLimit);
+    let members = project.members;
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      members = members.filter(member =>
+        member.name.toLowerCase().includes(searchLower) ||
+        member.email.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (role) {
+      members = members.filter(member => member.role === role);
+    }
 
     return res.status(200).json({
       success: true,
-      data: paginatedMembers,
-      pagination: {
-        page,
-        limit: finalLimit,
-        total,
-        totalPages: Math.ceil(total / finalLimit)
-      }
+      count: members.length,
+      data: members
     });
 
   } catch (error) {
@@ -233,52 +260,40 @@ async function GetAllMembers(req, res) {
 async function GetMyProjects(req, res) {
   try {
     const userId = req.user._id;
-    const tenantId=req.params.tenantId
-
-    // 🔹 Pagination
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
-
-    if (page < 1) page = 1;
-
-    const maxLimit = 50;
-    if (limit < 1) limit = 10;
-    const finalLimit = Math.min(limit, maxLimit);
-
-    const skip = (page - 1) * finalLimit;
-
-    // 🔹 Sorting
-    const sortBy = req.query.sortBy || "createdAt";
-    const order = req.query.order === "asc" ? 1 : -1;
-
-    const sortOptions = {};
-    sortOptions[sortBy] = order;
+    const tenantId = req.params.tenantId;
 
     const filter = {
-      tenantId:tenantId,
+      tenantId: tenantId,
       members: userId
     };
 
+    if (req.query.search) {
+      filter.name = {
+        $regex: req.query.search,
+        $options: "i"
+      };
+    }
 
-    // 🔹 Query
+    if (req.query.dueDate) {
+      const date = new Date(req.query.dueDate);
+
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+
+      filter.duedate = {
+        $gte: date,
+        $lt: nextDay
+      };
+    }
+
     const projects = await PROJECT.find(filter)
       .select("name description createdBy members duedate createdAt")
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(finalLimit);
-
-    const total = await PROJECT.countDocuments(filter);
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
-      message: "All projects",
-      data: projects,
-      pagination: {
-        page,
-        limit: finalLimit,
-        total,
-        totalPages: Math.ceil(total / finalLimit)
-      }
+      count: projects.length,
+      data: projects
     });
 
   } catch (error) {

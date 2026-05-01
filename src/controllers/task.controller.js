@@ -50,35 +50,42 @@ async function CreateTask(req,res) {
 
 async function GetAllTasks(req, res) {
   try {
-    const { projectId,tenantId } = req.params;
+    const { projectId, tenantId } = req.params;
 
-    // 🔹 Pagination
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
+    let filter = {
+      project: projectId,
+      tenantId: tenantId
+    };
 
-    if (page < 1) page = 1;
+    const { status, assignedTo, priority, search } = req.query;
 
-    const maxLimit = 50;
-    if (limit < 1) limit = 10;
-    const finalLimit = Math.min(limit, maxLimit);
+    if (status) {
+      filter.status = status;
+    }
 
-    const skip = (page - 1) * finalLimit;
+    if (assignedTo) {
+      filter.assignedTo = assignedTo;
+    }
 
+    if (priority) {
+      filter.priority = priority;
+    }
 
-    // 🔹 Query
-    const tasks = await TASK.find({project:projectId,tenantId:tenantId})
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    const tasks = await TASK.find(filter)
       .select("title description status priority createdAt assignedTo")
-      .populate("assignedTo", "name email")
-      .skip(skip)
-      .limit(finalLimit);
+      .populate("assignedTo", "name email");
 
     return res.status(200).json({
       success: true,
-      data: tasks,
-      pagination: {
-        page,
-        limit: finalLimit,
-      }
+      count: tasks.length,
+      data: tasks
     });
 
   } catch (error) {
@@ -192,62 +199,53 @@ async function ReassignTask(req,res) {
 
 async function getMyTasks(req, res) {
   try {
-    const { projectId ,tenantId} = req.params;
+    const { projectId, tenantId } = req.params;
     const userId = req.user._id;
 
-    // 🔹 Pagination
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10;
-
-    // Validation
-    if (page < 1) page = 1;
-    if (limit < 1 || limit > 50) limit = 10;
-
-    const skip = (page - 1) * limit;
-
     // 🔹 Sorting
-    const sortBy = req.query.sortBy || "createdAt"; // default
+    const sortBy = req.query.sortBy || "createdAt";
     const order = req.query.order === "asc" ? 1 : -1;
 
-    const sortOptions = {};
-    sortOptions[sortBy] = order;
+    const sortOptions = {
+      [sortBy]: order
+    };
 
     // 🔹 Filtering
-    const { status, priority, startDate, endDate } = req.query;
+    const { status, priority, startDate, endDate, search } = req.query;
 
-    const filter = {
+    let filter = {
       project: projectId,
       assignedTo: userId,
-      tenantId:tenantId
+      tenantId: tenantId
     };
 
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
 
+    // 🔥 Date range filter
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
       if (endDate) filter.createdAt.$lte = new Date(endDate);
     }
 
-    // 🔹 Query
+    // 🔥 Search
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // 🔹 Query (NO pagination)
     const tasks = await TASK.find(filter)
       .select("title description status priority createdAt")
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(limit);
-
-    const total = await TASK.countDocuments(filter);
+      .sort(sortOptions);
 
     return res.status(200).json({
       success: true,
-      data: tasks,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      count: tasks.length,
+      data: tasks
     });
 
   } catch (error) {
